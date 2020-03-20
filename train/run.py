@@ -14,6 +14,7 @@ from utils.torch import *
 from models.mlp_policy import Policy
 from models.mlp_critic import Value
 from models.mlp_policy_disc import DiscretePolicy
+from models.mlp_ltr import LtrPolicy
 
 try:
     path = os.path.join(assets_dir(), 'learned_models/{}_ppo.p'.format(args.env_name))
@@ -41,11 +42,7 @@ env.seed(seed)
 
 """define actor and critic"""
 if path is None:
-    if is_disc_action:
-        policy_net=DiscretePolicy(state_dim, env.action_space.n)
-    else:
-        policy_net = Policy(state_dim, env.action_space.shape[0], log_std=args.log_std)
-    value_net=Value(state_dim)
+    print("Can't find trained model!")
 else:
     print(path)
     policy_net, value_net, _ = pickle.load(open(path, "rb"))
@@ -55,17 +52,27 @@ value_net.to(device)
 
 state = env.reset()
 
+repeat = 0
+last_action = None
 reward_episode = 0
 
 for t in range(10000):
     state_var = tensor(state).unsqueeze(0)
+    assert(repeat>=0)
+    if repeat <= 0:
+        with torch.no_grad():
+            action, repeat = policy_net.select_action(state_var)
+            last_action = action
+            repeat = int(repeat)
+            print(repeat)
 
-    with torch.no_grad():
-        action = policy_net.select_action(state_var)
     next_state, reward, done, _ = env.step(action[0].tolist())
     reward_episode += reward
+    if repeat > 0:
+        repeat -= 1
 
-    env.render()
+    if args.render is True:
+        env.render()
     time.sleep(0.01)
 
     if done:

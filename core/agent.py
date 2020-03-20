@@ -25,16 +25,42 @@ def collect_samples(pid, queue, env, policy, custom_reward,
             state = running_state(state)
         reward_episode = 0
 
+        repeat = 0
+        last_action = None
+        ready_to_push = False
+        reward_period = 0
+        interval = 0
+
         for t in range(10000):
             state_var = tensor(state).unsqueeze(0)
-            with torch.no_grad():
-                if mean_action:
-                    action = policy(state_var)[0][0].numpy()
-                else:
-                    action = policy.select_action(state_var)[0].numpy()
-            action = int(action) if policy.is_disc_action else action.astype(np.float64)
-            next_state, reward, done, _ = env.step(action)
+            # Learning to Repeate only predicts when repeat reduced to 0.
+            assert(repeat>=0)
+            if repeat <= 0:
+                with torch.no_grad():
+                    if mean_action:
+                        action = policy(state_var)[0][0].numpy()
+                    else:
+                        # action, repeat = policy.select_action(state_var)[0].numpy()
+                        action, repeat = policy.select_action(state_var)
+                        action = action[0].numpy()
+                        repeat = repeat[0].numpy()
+                        # print(action)
+                        # print(repeat)
+                        # exit()
+                action = int(action) if policy.is_disc_action else action.astype(np.float64)
+                # action = action.tolist()
+                last_action = action
+                repeat = int(repeat)
+                ready_to_push = True
+                reward_period = 0
+                interval = 0
+
+            next_state, reward, done, _ = env.step(last_action)
             reward_episode += reward
+            reward_period += reward
+            interval += 1
+            if repeat > 0:
+                repeat -= 1
             if running_state is not None:
                 next_state = running_state(next_state)
 
@@ -45,8 +71,10 @@ def collect_samples(pid, queue, env, policy, custom_reward,
                 max_c_reward = max(max_c_reward, reward)
 
             mask = 0 if done else 1
-
-            memory.push(state, action, mask, next_state, reward)
+            if ready_to_push == True or done:
+                memory.push(state, last_action, mask, next_state, float(reward_period/interval), repeat)
+                ready_to_push = False
+                interval = 0
 
             if render:
                 env.render()

@@ -14,6 +14,7 @@ from plot.plot_logger import *
 from models.mlp_policy import Policy
 from models.mlp_critic import Value
 from models.mlp_policy_disc import DiscretePolicy
+from models.mlp_ltr import LtrPolicy
 from core.ppo import ppo_step
 from core.common import estimate_advantages
 from core.agent import Agent
@@ -45,6 +46,7 @@ is_disc_action = len(env.action_space.shape) == 0
 running_state = None
 
 """seeding"""
+seed = int(time.time())
 np.random.seed(args.seed)
 torch.manual_seed(args.seed)
 env.seed(args.seed)
@@ -54,7 +56,7 @@ if args.model_path is None:
     if is_disc_action:
         policy_net = DiscretePolicy(state_dim, env.action_space.n)
     else:
-        policy_net = Policy(state_dim, env.action_space.shape[0], log_std=args.log_std)
+        policy_net = LtrPolicy(state_dim, env.action_space.shape[0], log_std=args.log_std, ltr_n=args.ltr_n)
     value_net = Value(state_dim)
 else:
     policy_net, value_net, running_state = pickle.load(open(args.model_path, "rb"))
@@ -64,9 +66,9 @@ value_net.to(device)
 optimizer_policy = torch.optim.Adam(policy_net.parameters(), lr=args.learning_rate)
 optimizer_value = torch.optim.Adam(value_net.parameters(), lr=args.learning_rate)
 
-# optimization epoch number and batch size for PPO
-optim_epochs = 10
-optim_batch_size = 64
+# # optimization epoch number and batch size for PPO
+# optim_epochs = 10
+# optim_batch_size = 64
 
 """create agent"""
 agent = Agent(env, policy_net, device, running_state=running_state, render=args.render, num_threads=args.num_threads)
@@ -77,9 +79,10 @@ def update_params(batch, i_iter):
     actions = torch.from_numpy(np.stack(batch.action)).to(dtype).to(device)
     rewards = torch.from_numpy(np.stack(batch.reward)).to(dtype).to(device)
     masks = torch.from_numpy(np.stack(batch.mask)).to(dtype).to(device)
+    repeats = torch.from_numpy(np.stack(batch.repeat)).to(dtype).to(device)
     with torch.no_grad():
         values = value_net(states)
-        fixed_log_probs = policy_net.get_log_prob(states, actions)
+        fixed_log_probs, fixed_rpt_log_probs = policy_net.get_log_prob(states, actions, repeats)
 
     """get advantage estimation from the trajectories"""
     advantages, returns = estimate_advantages(rewards, masks, values, args.gamma, args.tau, device)
@@ -91,16 +94,16 @@ def update_params(batch, i_iter):
         np.random.shuffle(perm)
         perm = LongTensor(perm).to(device)
 
-        states, actions, returns, advantages, fixed_log_probs = \
-            states[perm].clone(), actions[perm].clone(), returns[perm].clone(), advantages[perm].clone(), fixed_log_probs[perm].clone()
+        states, actions, returns, advantages, repeats, fixed_log_probs, fixed_rpt_log_probs = \
+            states[perm].clone(), actions[perm].clone(), returns[perm].clone(), advantages[perm].clone(), repeats[perm].clone(), fixed_log_probs[perm].clone(), fixed_rpt_log_probs[perm].clone()
 
         for i in range(optim_iter_num):
             ind = slice(i * optim_batch_size, min((i + 1) * optim_batch_size, states.shape[0]))
-            states_b, actions_b, advantages_b, returns_b, fixed_log_probs_b = \
-                states[ind], actions[ind], advantages[ind], returns[ind], fixed_log_probs[ind]
+            states_b, actions_b, advantages_b, returns_b, repeats_b, fixed_log_probs_b, fixed_rpt_log_probs_b = \
+                states[ind], actions[ind], advantages[ind], returns[ind], repeats[ind], fixed_log_probs[ind], fixed_rpt_log_probs[ind]
 
-            ppo_step(policy_net, value_net, optimizer_policy, optimizer_value, 1, states_b, actions_b, returns_b,
-                     advantages_b, fixed_log_probs_b, args.clip_epsilon, args.l2_reg)
+            ppo_step(policy_net, value_net, optimizer_policy, optimizer_value, 1, states_b, actions_b, returns_b, 
+                     advantages_b, repeats_b, fixed_log_probs_b, fixed_rpt_log_probs_b, args.clip_epsilon, args.l2_reg)
 
 
 def main_loop():

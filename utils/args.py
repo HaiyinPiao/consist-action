@@ -24,7 +24,7 @@ parser.add_argument('--num-threads', type=int, default=8, metavar='N',
                     help='number of threads for agent (default: 4)')
 parser.add_argument('--seed', type=int, default=1, metavar='N',
                     help='random seed (default: 1)')
-parser.add_argument('--min-batch-size', type=int, default=2048, metavar='N',
+parser.add_argument('--min-batch-size', type=int, default=4000, metavar='N',
                     help='minimal batch size per PPO update (default: 2048)')
 parser.add_argument('--max-iter-num', type=int, default=500, metavar='N',
                     help='maximal number of main iterations (default: 500)')
@@ -34,7 +34,8 @@ parser.add_argument('--save-model-interval', type=int, default=5, metavar='N',
                     help="interval between saving model (default: 0, means don't save)")
 parser.add_argument('--gpu-index', type=int, default=0, metavar='N')
 parser.add_argument('--log-plot', type=bool, default=True, metavar='N')
-parser.add_argument('--log-plot-steps', type=int, default=100, metavar='N')
+parser.add_argument('--log-plot-steps', type=int, default=10000, metavar='N')
+parser.add_argument('--ltr-n', type=int, default=3, metavar='N')
 args = parser.parse_args()
 
 # optimization epoch number and batch size for PPO

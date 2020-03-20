@@ -1,5 +1,21 @@
-# Object file
+core/__pycache__
+models/__pycache__
+train/__pycache__
+train/logs
+train/evaluation
+utils/__pycache__
+python/__pycache__
 *.o
-
-# Ada Library Information
-*.ali
+*.mk
+*.rsp
+*.tmw
+*.dmr
+*.txt
+*.pyc
+*.cxx
+*.out
+*.h5
+*.p
+*.mexa64
+.vscode
+*.pkl

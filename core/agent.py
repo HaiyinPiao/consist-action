@@ -3,6 +3,7 @@ from utils.replay_memory import Memory
 from utils.torch import *
 import math
 import time
+from utils.args import *
 
 
 def collect_samples(pid, queue, env, policy, custom_reward,
@@ -26,6 +27,7 @@ def collect_samples(pid, queue, env, policy, custom_reward,
         reward_episode = 0
 
         repeat = 0
+        repeat_len = 0
         last_action = None
         ready_to_push = False
         reward_period = 0
@@ -51,13 +53,15 @@ def collect_samples(pid, queue, env, policy, custom_reward,
                 # action = action.tolist()
                 last_action = action
                 repeat = int(repeat)
+                repeat_len = repeat
                 ready_to_push = True
                 reward_period = 0
                 interval = 0
 
             next_state, reward, done, _ = env.step(last_action)
             reward_episode += reward
-            reward_period += reward
+            # reward_period += reward
+            reward_period += reward*(args.gamma**(repeat_len-repeat))
             interval += 1
             if repeat > 0:
                 repeat -= 1

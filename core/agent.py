@@ -76,6 +76,7 @@ def collect_samples(pid, queue, env, policy, custom_reward,
 
             mask = 0 if done else 1
             if ready_to_push == True or done:
+                repeat = 0 if done else repeat
                 memory.push(state, last_action, mask, next_state, float(reward_period/interval), repeat)
                 ready_to_push = False
                 interval = 0

@@ -85,7 +85,7 @@ def update_params(batch, i_iter):
         fixed_log_probs, fixed_rpt_log_probs = policy_net.get_log_prob(states, actions, repeats)
 
     """get advantage estimation from the trajectories"""
-    advantages, returns = estimate_advantages(rewards, masks, values, args.gamma, args.tau, device)
+    advantages, returns = estimate_advantages(repeats, rewards, masks, values, args.gamma, args.tau, device)
 
     """perform mini-batch PPO update"""
     optim_iter_num = int(math.ceil(states.shape[0] / optim_batch_size))

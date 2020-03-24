@@ -2,11 +2,11 @@ import argparse
 import time
 
 parser = argparse.ArgumentParser(description='PyTorch PPO example')
-parser.add_argument('--env-name', default="Hopper-v2", metavar='G',
+parser.add_argument('--env-name', default="MountainCarContinuous-v0", metavar='G',
                     help='name of the environment to run')
 parser.add_argument('--model-path', metavar='G',
                     help='path of pre-trained model')
-parser.add_argument('--render', action='store_true', default=False,
+parser.add_argument('--render', action='store_true', default=True,
                     help='render the environment')
 parser.add_argument('--log-std', type=float, default=-0.0, metavar='G',
                     help='log std for the policy (default: -0.0)')
@@ -24,7 +24,7 @@ parser.add_argument('--num-threads', type=int, default=8, metavar='N',
                     help='number of threads for agent (default: 4)')
 parser.add_argument('--seed', type=int, default=1, metavar='N',
                     help='random seed (default: 1)')
-parser.add_argument('--min-batch-size', type=int, default=5000, metavar='N',
+parser.add_argument('--min-batch-size', type=int, default=16000, metavar='N',
                     help='minimal batch size per PPO update (default: 2048)')
 parser.add_argument('--max-iter-num', type=int, default=500, metavar='N',
                     help='maximal number of main iterations (default: 500)')
@@ -35,7 +35,7 @@ parser.add_argument('--save-model-interval', type=int, default=5, metavar='N',
 parser.add_argument('--gpu-index', type=int, default=0, metavar='N')
 parser.add_argument('--log-plot', type=bool, default=True, metavar='N')
 parser.add_argument('--log-plot-steps', type=int, default=10000, metavar='N')
-parser.add_argument('--ltr-n', type=int, default=1, metavar='N')
+parser.add_argument('--ltr-n', type=int, default=10, metavar='N')
 args = parser.parse_args()
 
 # optimization epoch number and batch size for PPO
